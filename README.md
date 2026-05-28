@@ -21,4 +21,4 @@ A desktop Tic-Tac-Toe game built in Python using Pygame for the graphical interf
 
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/abhiswrld/Tic-Tac-Toe-AI.git](https://github.com/abhiswrld/Tic-Tac-Toe-AI.git)
+   git clone https://github.com/abhiswrld/Tic-Tac-Toe-AI.git
