@@ -169,11 +169,21 @@ def best_move():
     
     return False
 
+def restart_game():
+    # Clear the graphical window and reset the logical numpy data matrix back to zeros
+    screen.fill(BLACK)
+    draw_lines()
+    for row in range(BOARD_ROWS):
+        for col in range(BOARD_COLS):
+            board[row][col] = 0
+
 # INITIAL RENDER
 
 # Draw the initial grid before starting the listening loop
 draw_lines()
-pygame.display.update()
+
+player = 1
+game_over = False
 
 # MAIN GAME LOOP
 
@@ -185,3 +195,53 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+
+        # Handle mouse clicks on the game grid
+        if event.type == pygame.MOUSEBUTTONDOWN and not game_over:
+            # Convert raw pixel coordinates into logical matrix grid indexes (0, 1, or 2)
+            mouseX = event.pos[0] // SQUARE_SIZE
+            mouseY = event.pos[1] // SQUARE_SIZE
+
+            # Process human player move sequence
+            if available_square(mouseY, mouseX):
+                mark_square(mouseY, mouseX, player)
+                if check_win(player):
+                    game_over = True
+                player = player % 2 + 1
+            
+                # Immediately trigger the AI opponent move if the game is still running
+                if not game_over:
+                    if best_move():
+                        if check_win(2):
+                            game_over = True
+                        player = player % 2 + 1
+                
+                # Final fallback check to verify if the board hit a stalemate tie scenario
+                if not game_over:
+                    if is_board_full():
+                        game_over = True
+        
+        # Handle keyboard shortcuts for resetting state mechanics
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_r:
+                restart_game()
+                game_over = False
+                player = 1
+        
+    # Visual rendering state controller loop
+    if not game_over:
+        draw_figures()
+    else:
+        # Repaint grid and elements using specialized color codes depending on who won
+        if check_win(1):
+            draw_figures(GREEN)
+            draw_lines(GREEN)
+        elif check_win(2):
+            draw_figures(RED)
+            draw_lines(RED)
+        else:
+            draw_figures(GREY)
+            draw_lines(GREY)
+
+    # Push all buffered graphical updates live to the active display frame
+    pygame.display.update()
