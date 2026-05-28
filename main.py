@@ -5,7 +5,7 @@ import numpy as np # Used to manage the 3x3 game board as a mathematical matrix
 # Initialize the Pygame engine before doing anything else
 pygame.init()
 
-# --- CONSTANTS & CONFIGURATION ---
+# CONSTANTS & CONFIGURATION
 
 # Color Palette (RGB Format)
 WHITE = (255, 255, 255)
@@ -30,7 +30,7 @@ CIRCLE_RADIUS = SQUARE_SIZE // 3
 CIRCLE_WIDTH = 15
 CROSS_WIDTH = 25
 
-# --- SETUP & STATE ---
+# SETUP & STATE
 
 # Set up the main display window
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -41,7 +41,7 @@ screen.fill(BLACK)
 # 0 = empty square, 1 = Player (O), 2 = AI (X)
 board = np.zeros((BOARD_ROWS, BOARD_COLS))
 
-# --- DRAWING FUNCTIONS ---
+# DRAWING FUNCTIONS
 
 def draw_lines(color=WHITE):
     # We start the range at 1 because we don't need lines at the absolute edges (index 0)
@@ -70,7 +70,7 @@ def draw_figures(color=WHITE):
                 # Bottom-left to top-right line offset calculation
                 pygame.draw.line(screen, color, (col * SQUARE_SIZE + SQUARE_SIZE // 4, row * SQUARE_SIZE + 3 * SQUARE_SIZE // 4), (col * SQUARE_SIZE + 3 * SQUARE_SIZE // 4, row * SQUARE_SIZE + SQUARE_SIZE // 4), CROSS_WIDTH)
 
-# --- UTILITY CORE GAME LOGIC ---
+# UTILITY CORE GAME LOGIC
 
 def mark_square(row, col, player):
     # Assign the current square coordinates to the specific player integer (1 or 2)
@@ -110,13 +110,72 @@ def check_win(player, check_board=board):
     # Return False if none of the winning line configurations are met
     return False
 
-# --- INITIAL RENDER ---
+# MINIMAX AI ENGINE
+
+def minimax(minimax_board, depth, is_maximizing):
+    # Base Cases: Terminal states that stop the recursive search tree loop
+    if check_win(2, minimax_board):
+        return float('inf')   # AI winning is the absolute best outcome
+    elif check_win(1, minimax_board):
+        return float('-inf')  # Player winning is the absolute worst outcome
+    elif is_board_full(minimax_board):
+        return 0              # Tie is completely neutral score
+    
+    # AI Maximizing Branch: Simulates its own best possible responses
+    if is_maximizing:
+        best_score = -100
+        for row in range(BOARD_ROWS):
+            for col in range(BOARD_COLS):
+                if minimax_board[row][col] == 0:
+                    minimax_board[row][col] = 2                  # Temporarily place AI move
+                    score = minimax(minimax_board, depth + 1, False) # Recurse down to player turn
+                    minimax_board[row][col] = 0                  # Backtrack and reset board state
+                    best_score = max(score, best_score)          # Track maximum possible value
+        return best_score
+        
+    # Player Minimizing Branch: Simulates what the opponent would do to hurt the AI
+    else:
+        best_score = 100
+        for row in range(BOARD_ROWS):
+            for col in range(BOARD_COLS):
+                if minimax_board[row][col] == 0:
+                    minimax_board[row][col] = 1                  # Temporarily place Player move
+                    score = minimax(minimax_board, depth + 1, True)  # Recurse down to AI turn
+                    minimax_board[row][col] = 0                  # Backtrack and reset board state
+                    best_score = min(score, best_score)          # Track minimum possible value
+        return best_score
+
+def best_move():
+    best_score = -100
+    best_target = (-1, -1) # Track the coordinates of our top-rated game square
+    
+    # Evaluate every single empty cell to initialize the first recursion level
+    for row in range(BOARD_ROWS):
+        for col in range(BOARD_COLS):
+            if board[row][col] == 0:
+                board[row][col] = 2              # Fake an AI move on the actual matrix
+                score = minimax(board, 0, False) # Kickoff minimax to predict future states
+                board[row][col] = 0              # Backtrack and clear the cell
+                
+                # If this sequence scores higher than our benchmark, save its details
+                if score > best_score:
+                    best_score = score
+                    best_target = (row, col)
+    
+    # If a valid calculated pathway was captured, commit the piece permanently to the board
+    if best_target != (-1, -1):
+        mark_square(best_target[0], best_target[1], 2)
+        return True
+    
+    return False
+
+# INITIAL RENDER
 
 # Draw the initial grid before starting the listening loop
 draw_lines()
 pygame.display.update()
 
-# --- MAIN GAME LOOP ---
+# MAIN GAME LOOP
 
 # This infinite loop keeps the window open and listens for user interactions
 while True:
